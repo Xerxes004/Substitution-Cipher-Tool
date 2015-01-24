@@ -32,26 +32,40 @@ public class FileParser {
         cipherFile = null;
         
         calibrationValues = new double[26];
-        
-        alphabet = new char[26];
+        cipherValues = new double[26];
         
         for (int i = 0; i < 26; i++) {
             calibrationValues[i] = 0.0;
-            alphabet[i] = (char)('A' + i);
+            cipherValues[i] = 0.0;
         }
+        
+        calibrationAlphabet = new char[26];
+        cipherAlphabet = new char[26];
+        
+        calibrationData = "";
+        ciphertextData = "";
+                
+        rawCipherText = "";
     }
     
+        //File used to calibrate (regular text)
     private File calibrationFile;
+        //File to be deciphered (substitution-cipher text)
     private File cipherFile;
+        //Array where the relative frequencies are stored for the cal file
     private double[] calibrationValues;
+        //Array where the relative frequencies are stored for the cipher file
     private double[] cipherValues;
-    private char[] alphabet;
+        //Arrays where the ordered alphabets are stored (ordered by rel freq)
+    private char[] calibrationAlphabet;
+    private char[] cipherAlphabet;
+        //Data that will be displayed on screen
     private String calibrationData;
     private String ciphertextData;
+    private String rawCipherText;
     
     public void setCalibrationFile (File newCalibrationFile) {
         calibrationFile = newCalibrationFile;
-        
     }
     
     public File getCalibrationFile () {
@@ -82,7 +96,11 @@ public class FileParser {
         return ciphertextData;
     }
     
-    public boolean parseAndCalibrateAllSelectedFiles () {
+    public String getRawCiphertext() {
+        return rawCipherText;
+    }
+    
+    public boolean parseAndCalibrateCalFile () {
         boolean finishedSuccessfully = false;
         if (calibrationFile != null) {
             try {
@@ -106,10 +124,9 @@ public class FileParser {
                 
                 for (int i = 0; i < 26; i++) {
                     calibrationValues[i] = calibrationValues[i] / countTotalChars;
-                    calTextFieldAppend += (alphabet[i] + ": " + String.format("%.4f",calibrationValues[i]) + nbsp);
+                    calTextFieldAppend += (calibrationAlphabet[i] + ": " + String.format("%.4f",calibrationValues[i]) + nbsp);
                 }
                 
-                //CalibrationDataFieldTextArea.setText(calTextFieldAppend);
                 setCalibrationData(calTextFieldAppend);
             }
             catch (FileNotFoundException ex) {
@@ -118,6 +135,11 @@ public class FileParser {
             finishedSuccessfully = true;
         }
         
+        return finishedSuccessfully;
+    }
+    
+    public boolean parseAndCalibrateCipherFile () {
+        boolean finishedSuccessfully = false;
         if (cipherFile != null) {
             try {
                 Scanner line = new Scanner(cipherFile);
@@ -129,22 +151,23 @@ public class FileParser {
                     for (int i = 0; i < nextLine.length(); i++) {
                         if (Character.isLetter(nextLine.charAt(i))) {
                             countTotalChars++;
-                            calibrationValues[Character.toUpperCase(nextLine.charAt(i)) - 'A']++;
+                            rawCipherText += nextLine.charAt(i);
+                            cipherValues[Character.toUpperCase(nextLine.charAt(i)) - 'A']++;
                         }
                     }
                 }
-                String calTextFieldAppend = new String();
+                
+                String ciphertextFieldAppend = new String();
                 String nbsp = System.getProperty("line.separator");
                 
                 sortyByRelativeFrequency();
                 
                 for (int i = 0; i < 26; i++) {
-                    calibrationValues[i] = calibrationValues[i] / countTotalChars;
-                    calTextFieldAppend += (alphabet[i] + ": " + String.format("%.4f",calibrationValues[i]) + nbsp);
+                    cipherValues[i] = cipherValues[i] / countTotalChars;
+                    ciphertextFieldAppend += (cipherAlphabet[i] + ": " + String.format("%.4f",cipherValues[i]) + nbsp);
                 }
                 
-                //CalibrationDataFieldTextArea.setText(calTextFieldAppend);
-                setCalibrationData(calTextFieldAppend);
+                setCiphertextData(ciphertextFieldAppend);
             }
             catch (FileNotFoundException ex) {
                 System.out.println("File not found: " + ex.getMessage());
@@ -154,9 +177,18 @@ public class FileParser {
         return finishedSuccessfully;
     }
     
+    private void initAlphabets() {
+        for (int i = 0; i < 26; i++) {
+            calibrationAlphabet[i] = (char)('A' + i);
+            cipherAlphabet[i] = (char)('A' + i);
+        }
+    }
+    
     private void sortyByRelativeFrequency() {
         double tempDoub;
         char tempChar;
+        
+        initAlphabets();
         
         for (int i = 0; i < 26; i++) {
             for (int j = i + 1; j < 26; j++) {
@@ -166,9 +198,24 @@ public class FileParser {
                     calibrationValues[i] = calibrationValues[j];
                     calibrationValues[j] = tempDoub;
                     
-                    tempChar = alphabet[i];
-                    alphabet[i] = alphabet[j];
-                    alphabet[j] = tempChar;
+                    tempChar = calibrationAlphabet[i];
+                    calibrationAlphabet[i] = calibrationAlphabet[j];
+                    calibrationAlphabet[j] = tempChar;
+                }
+            }
+        }
+        
+        for (int i = 0; i < 26; i++) {
+            for (int j = i + 1; j < 26; j++) {
+                if (cipherValues[j] > cipherValues[i]) {
+                    
+                    tempDoub = cipherValues[i];
+                    cipherValues[i] = cipherValues[j];
+                    cipherValues[j] = tempDoub;
+                    
+                    tempChar = cipherAlphabet[i];
+                    cipherAlphabet[i] = cipherAlphabet[j];
+                    cipherAlphabet[j] = tempChar;
                 }
             }
         }
